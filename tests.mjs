@@ -186,7 +186,7 @@ function tokenInterval(token) {
 
 function formulaIntervals(entry) {
   const raw = formulaTokens(entry.formula).map(tokenInterval);
-  if (!entry.voicing) return raw.map((interval) => ((interval % 12) + 12) % 12);
+  if (!entry.voicing) return raw.map((interval) => ((interval % 12) + 12) % 12).sort((a, b) => a - b);
   const ascending = [];
   for (const rawInterval of raw) {
     let interval = rawInterval;
