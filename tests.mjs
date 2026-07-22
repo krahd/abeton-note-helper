@@ -1,35 +1,112 @@
 import assert from 'node:assert/strict';
+import {
+  LAYOUTS,
+  PATTERNS,
+  identifyChords,
+  layoutCells,
+  layoutRange,
+  midiNoteName,
+  noteName,
+  padMidi,
+  patternPitchClasses,
+  resolveVoicing,
+} from './music-theory.mjs';
 
-const rowOffsetsTopToBottom=[20,15,10,5,0];
-const pitchClass=(midi)=>((midi%12)+12)%12;
-
-assert.equal(rowOffsetsTopToBottom.length,5,'The grid must have five rows');
-assert.deepEqual(rowOffsetsTopToBottom.map(o=>pitchClass(48+o)),[8,3,10,5,0], 'Top-to-bottom row starts must be G♯, D♯, A♯, F, C');
-for(const offset of rowOffsetsTopToBottom){
-  const row=Array.from({length:13},(_,column)=>pitchClass(48+offset+column));
-  assert.equal(row.length,13);
-  assert.equal(row[12],row[0],'Thirteenth pad must repeat the first pitch class one octave higher');
-  row.slice(1).forEach((pc,index)=>assert.equal(pc,(row[index]+1)%12,'Pads must rise by one semitone to the right'));
+function pitchClass(midi) {
+  return ((midi % 12) + 12) % 12;
 }
-for(let row=4;row>0;row--){
-  const lower=pitchClass(48+rowOffsetsTopToBottom[row]);
-  const upper=pitchClass(48+rowOffsetsTopToBottom[row-1]);
-  assert.equal((upper-lower+12)%12,5,'Rows must rise by a perfect fourth');
+
+for (const layout of Object.values(LAYOUTS)) {
+  const cells = layoutCells(layout.id);
+  assert.equal(cells.length, layout.columns * layout.rows, `${layout.name} cell count`);
+  assert.equal(padMidi(layout.id, 0, 0), layout.baseMidi, `${layout.name} bottom-left MIDI`);
+
+  for (let row = 0; row < layout.rows; row += 1) {
+    for (let column = 1; column < layout.columns; column += 1) {
+      assert.equal(
+        padMidi(layout.id, row, column) - padMidi(layout.id, row, column - 1),
+        1,
+        `${layout.name} must rise one semitone to the right`,
+      );
+    }
+  }
+
+  for (let row = 1; row < layout.rows; row += 1) {
+    assert.equal(
+      padMidi(layout.id, row, 0) - padMidi(layout.id, row - 1, 0),
+      5,
+      `${layout.name} must rise a perfect fourth between rows`,
+    );
+  }
 }
 
-const canonical={
-  major:[0,2,4,5,7,9,11],minor:[0,2,3,5,7,8,10],dorian:[0,2,3,5,7,9,10],
-  majorTriad:[0,4,7],minorTriad:[0,3,7],dominant7:[0,4,7,10],major7:[0,4,7,11],
-  halfDiminished:[0,3,6,10],diminished7:[0,3,6,9]
-};
-assert.deepEqual(canonical.major,[0,2,4,5,7,9,11]);
-assert.deepEqual(canonical.dominant7,[0,4,7,10]);
+assert.equal(LAYOUTS.ipad.columns, 13);
+assert.equal(LAYOUTS.ipad.rows, 5);
+assert.equal(midiNoteName(padMidi('ipad', 0, 0)), 'C2');
+assert.equal(noteName(padMidi('ipad', 1, 0)), 'F');
+assert.deepEqual(
+  Array.from({ length: 5 }, (_, row) => noteName(padMidi('ipad', row, 0))),
+  ['C', 'F', 'A#', 'D#', 'G#'],
+);
+assert.equal(pitchClass(padMidi('ipad', 0, 12)), pitchClass(padMidi('ipad', 0, 0)));
 
-const cMajorDrop2=[48,55,59,64];
-assert.deepEqual(cMajorDrop2.map(n=>n-48),[0,7,11,16],'Cmaj7 drop-2 must illuminate only C3, G3, B3 and E4');
+assert.equal(LAYOUTS.iphone.columns, 5);
+assert.equal(LAYOUTS.iphone.rows, 5);
+assert.deepEqual(
+  Array.from({ length: 5 }, (_, column) => midiNoteName(padMidi('iphone', 0, column))),
+  ['C2', 'C#2', 'D2', 'D#2', 'E2'],
+);
+assert.deepEqual(
+  Array.from({ length: 5 }, (_, column) => midiNoteName(padMidi('iphone', 4, column))),
+  ['G#3', 'A3', 'A#3', 'B3', 'C4'],
+);
+assert.deepEqual(layoutRange('iphone'), { low: 36, high: 60 });
 
-function normalise(notes,root){return notes.map(n=>(n-root+12)%12).sort((a,b)=>a-b)}
-assert.deepEqual(normalise([0,4,7],0),canonical.majorTriad);
-assert.deepEqual(normalise([2,5,9],2),canonical.minorTriad);
+assert.equal(LAYOUTS.push.columns, 8);
+assert.equal(LAYOUTS.push.rows, 8);
+assert.equal(midiNoteName(padMidi('push', 0, 0)), 'C1');
+assert.deepEqual(layoutRange('push'), { low: 24, high: 66 });
 
-console.log('All Ableton Note Helper tests passed.');
+assert.throws(() => padMidi('ipad', -1, 0), RangeError);
+assert.throws(() => padMidi('ipad', 0, 13), RangeError);
+
+const ids = PATTERNS.map((entry) => entry.id);
+assert.equal(new Set(ids).size, ids.length, 'Pattern IDs must be unique');
+for (const entry of PATTERNS) {
+  assert.ok(entry.name.length > 0);
+  assert.ok(entry.formula.length > 0);
+  assert.ok(entry.intervals.length > 0);
+  assert.ok(entry.intervals.every(Number.isFinite));
+  if (!entry.voicing) {
+    assert.ok(entry.intervals.every((interval) => interval >= 0 && interval < 12));
+    assert.equal(new Set(entry.intervals).size, entry.intervals.length);
+  }
+}
+
+assert.deepEqual(
+  [...patternPitchClasses(0, [0, 2, 4, 5, 7, 9, 11])].sort((a, b) => a - b),
+  [0, 2, 4, 5, 7, 9, 11],
+);
+
+assert.equal(identifyChords([48, 52, 55])[0].name, 'C');
+assert.equal(identifyChords([52, 55, 60])[0].name, 'C/E');
+assert.ok(identifyChords([45, 48, 52, 55]).some((match) => match.name === 'Am7'));
+assert.ok(identifyChords([45, 48, 52, 55]).some((match) => match.name === 'C6/A'));
+assert.equal(identifyChords([50, 53, 57, 60])[0].name, 'Dm7');
+assert.equal(identifyChords([48, 52, 55], 'flat')[0].name, 'C');
+
+const ipadDrop2 = resolveVoicing('ipad', 0, [0, 7, 11, 16]);
+assert.equal(ipadDrop2.complete, true);
+assert.deepEqual(ipadDrop2.targetNotes, [36, 43, 47, 52]);
+assert.equal(ipadDrop2.positions.length, 4);
+assert.equal(ipadDrop2.positionKeys.size, 4, 'A voicing must select one physical pad per note');
+
+const iphoneBDrop2 = resolveVoicing('iphone', 11, [0, 7, 11, 16]);
+assert.equal(iphoneBDrop2.complete, false);
+assert.ok(iphoneBDrop2.missingNotes.length > 0);
+
+const pushRootless = resolveVoicing('push', 0, [4, 10, 14, 21]);
+assert.equal(pushRootless.complete, true);
+assert.equal(pushRootless.positions.length, 4);
+
+console.log(`All Ableton Note Helper tests passed (${PATTERNS.length} patterns, 3 layouts).`);
