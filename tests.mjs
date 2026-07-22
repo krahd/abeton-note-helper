@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {
+  CHORD_DICTIONARY,
   LAYOUTS,
   PATTERNS,
   identifyChords,
@@ -94,6 +95,27 @@ assert.ok(identifyChords([45, 48, 52, 55]).some((match) => match.name === 'Am7')
 assert.ok(identifyChords([45, 48, 52, 55]).some((match) => match.name === 'C6/A'));
 assert.equal(identifyChords([50, 53, 57, 60])[0].name, 'Dm7');
 assert.equal(identifyChords([48, 52, 55], 'flat')[0].name, 'C');
+
+for (const entry of CHORD_DICTIONARY) {
+  const notes = entry.intervals.map((interval) => 48 + interval);
+  assert.ok(
+    identifyChords(notes).some((match) => match.quality === entry.quality && match.root === 0),
+    `Chord dictionary entry must recognise C ${entry.quality}`,
+  );
+}
+
+for (const layout of Object.values(LAYOUTS)) {
+  const validPositions = new Set(layoutCells(layout.id).map((cell) => cell.key));
+  for (let root = 0; root < 12; root += 1) {
+    for (const entry of PATTERNS.filter((candidate) => candidate.voicing)) {
+      const result = resolveVoicing(layout.id, root, entry.intervals);
+      assert.equal(result.positions.length, result.positionKeys.size, `${entry.name} must not repeat pad positions`);
+      assert.ok(result.positions.every((position) => validPositions.has(position.key)));
+      assert.equal(result.positions.length, result.visibleNotes.length);
+      if (result.complete) assert.equal(result.positions.length, entry.intervals.length);
+    }
+  }
+}
 
 const ipadDrop2 = resolveVoicing('ipad', 0, [0, 7, 11, 16]);
 assert.equal(ipadDrop2.complete, true);
