@@ -208,6 +208,17 @@ main { padding-bottom: 28px; }
   gap: 16px;
 }
 
+.empty-state {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
 .chart-card {
   min-width: 0;
   padding: 14px;
