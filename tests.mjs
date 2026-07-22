@@ -227,6 +227,7 @@ assert.match(
 assert.match(appSource, /elements\.clearSelection\.hidden = notes\.length === 0/u);
 assert.ok(existsSync(new URL('./assets/favicon.svg', import.meta.url)));
 assert.ok(existsSync(new URL('./assets/social-preview.svg', import.meta.url)));
+assert.ok(existsSync(new URL('./assets/social-preview.png', import.meta.url)));
 assert.ok(existsSync(new URL('./enhancements.css', import.meta.url)));
 assert.match(html, /Not affiliated with or endorsed by Ableton/u);
 
