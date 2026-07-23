@@ -40,6 +40,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html styles.css enhancements.css app.js music-theory.mjs _site/
+          cp robots.txt sitemap.xml site.webmanifest 187698fd6565dcfce23484648701f559.txt _site/
           cp -R assets _site/
       - uses: actions/upload-pages-artifact@v3
         with:
