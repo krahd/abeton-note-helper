@@ -5,6 +5,8 @@
 
 A free, interactive reference for learning scales, modes, chords, arpeggios and exact voicings on Ableton Note and Push pad layouts. It runs entirely in the browser: no account, installation, analytics or tracking.
 
+Created by [Tomás Laurenzo](https://laurenzo.net).
+
 **[Open the live app](https://krahd.github.io/ableton-note-helper/)**
 
 ![Ableton Note Helper preview](assets/social-preview.png)
@@ -52,7 +54,7 @@ Node.js 20 or later is required only for development:
 npm test
 ```
 
-The suite checks all three grid geometries, the iPhone mapping, every pattern definition, chord recognition, inversions, exact-voicing placement, duplicate-pad prevention and essential static-page wiring.
+The suite checks all three grid geometries, the iPhone mapping, every pattern definition, chord recognition, inversions, exact-voicing placement, duplicate-pad prevention, essential static-page wiring and search-discovery metadata.
 
 ## Contributing
 
