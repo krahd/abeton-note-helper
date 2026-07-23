@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://krahd.github.io/ableton-note-helper/sitemap.xml
