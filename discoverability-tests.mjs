@@ -6,7 +6,6 @@ const INDEXNOW_KEY = '187698fd6565dcfce23484648701f559';
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 for (const path of [
-  './robots.txt',
   './sitemap.xml',
   './site.webmanifest',
   `./${INDEXNOW_KEY}.txt`,
@@ -18,6 +17,7 @@ for (const path of [
 const html = read('./index.html');
 assert.match(html, new RegExp(`<link rel="canonical" href="${SITE_URL.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}"`));
 assert.match(html, /<link rel="manifest" href="site\.webmanifest">/u);
+assert.match(html, /<link rel="sitemap" type="application\/xml" href="sitemap\.xml">/u);
 assert.match(html, /<script type="application\/ld\+json">/u);
 assert.match(html, /"@type": "WebApplication"/u);
 assert.match(html, /"name": "Tomás Laurenzo"/u);
@@ -39,11 +39,6 @@ assert.equal(manifest.start_url, './');
 assert.equal(manifest.display, 'standalone');
 assert.ok(manifest.categories.includes('music'));
 
-const robots = read('./robots.txt');
-assert.match(robots, /^User-agent: \*/mu);
-assert.match(robots, /^Allow: \/$/mu);
-assert.match(robots, new RegExp(`^Sitemap: ${SITE_URL}sitemap\\.xml$`, 'mu'));
-
 const sitemap = read('./sitemap.xml');
 assert.match(sitemap, /<urlset xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/u);
 assert.match(sitemap, new RegExp(`<loc>${SITE_URL.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}</loc>`));
@@ -52,8 +47,9 @@ assert.equal((sitemap.match(/<url>/gu) ?? []).length, 1, 'Only the canonical app
 assert.equal(read(`./${INDEXNOW_KEY}.txt`).trim(), INDEXNOW_KEY);
 
 const workflow = read('./.github/workflows/pages.yml');
-for (const filename of ['robots.txt', 'sitemap.xml', 'site.webmanifest', `${INDEXNOW_KEY}.txt`]) {
+for (const filename of ['sitemap.xml', 'site.webmanifest', `${INDEXNOW_KEY}.txt`]) {
   assert.match(workflow, new RegExp(filename.replaceAll('.', '\\.')), `Pages workflow must deploy ${filename}`);
 }
+assert.doesNotMatch(workflow, /robots\.txt/u, 'Project Pages must not pretend to control the host-level robots file');
 
 console.log('Discoverability metadata and deployment tests passed.');
